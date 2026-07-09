@@ -6,6 +6,7 @@ import { Toaster } from 'sonner';
 import Home from './Home';
 import Admin from './Admin';
 import Participate from './Participate';
+import FloatingWhatsApp from './components/FloatingWhatsApp';
 import { ThemeProvider } from './components/theme-provider'; // (Optional wrapper, original was using a custom ThemeContext via BC())
 
 const queryClient = new QueryClient();
@@ -17,6 +18,7 @@ const Layout = () => {
         <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
           <Outlet />
           <Toaster />
+          <FloatingWhatsApp />
         </ThemeProvider>
       </TooltipProvider>
     </QueryClientProvider>
