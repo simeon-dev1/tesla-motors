@@ -4,8 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Menu, X, BadgeCheck, CheckCircle2, 
   ArrowRight, ThumbsUp, ThumbsDown, 
-  Shield, Zap, Star, Globe, Clock,
-  Car, Wallet, Users, Award, Sparkles
+  Shield, Zap, Star, Globe, Clock, Car
 } from 'lucide-react';
 
 // --- Navbar Component ---
@@ -55,8 +54,9 @@ const Navbar = ({ branding }) => {
 const FloatingNotification = () => {
   const [current, setCurrent] = useState(null);
   const [data, setData] = useState([]);
-
-  useEffect(() => {
+  
+  // 1. Generate 55 unique users (Static data, never changes)
+  const generateFakeUsers = () => {
     const firstNames = ["James", "Sophie", "Carlos", "Yuki", "Emma", "Lucas", "Fatima", "Pierre", "Amara", "Hans", "Raj", "Maria", "Kevin", "Anna", "David", "Liam", "Jin", "Mei", "Thomas", "Ingrid", "Pablo", "Olga", "Lars", "Sara", "Kwame", "Nadia", "Rafael", "Hana", "Viktor", "Celine"];
     const lastNames = ["O.", "M.", "R.", "T.", "W.", "B.", "A.", "D.", "N.", "M.", "P.", "G.", "O.", "S.", "C.", "M.", "W.", "L.", "B.", "H.", "M.", "P.", "E.", "F.", "D.", "B.", "C.", "K.", "N.", "F."];
     const countries = ["🇺🇸 USA", "🇬🇧 UK", "🇲🇽 Mexico", "🇯🇵 Japan", "🇨🇦 Canada", "🇧🇷 Brazil", "🇦🇪 UAE", "🇫🇷 France", "🇿🇦 South Africa", "🇩🇪 Germany", "🇮🇳 India", "🇦🇷 Argentina", "🇰🇪 Kenya", "🇷🇺 Russia", "🇦🇺 Australia", "🇮🇪 Ireland", "🇰🇷 South Korea", "🇸🇬 Singapore", "🇧🇪 Belgium", "🇳🇴 Norway", "🇨🇴 Colombia", "🇵🇱 Poland", "🇸🇪 Sweden", "🇩🇰 Denmark", "🇬🇭 Ghana", "🇲🇦 Morocco", "🇵🇹 Portugal", "🇨🇿 Czech Republic", "🇺🇦 Ukraine", "🇨🇭 Switzerland"];
@@ -74,20 +74,55 @@ const FloatingNotification = () => {
         fee: fees[Math.floor(Math.random() * fees.length)]
       });
     }
-    setData(users);
+    return users;
+  };
+
+  useEffect(() => {
+    // Initialize the list only once
+    setData(generateFakeUsers());
   }, []);
 
   useEffect(() => {
     if (data.length === 0) return;
+    
+    // 2. Logic to handle already-shown names across refreshes
+    const storedShown = JSON.parse(localStorage.getItem('shown_toasts_names') || '[]');
+    // Filter out names already shown to ensure 100% fresh experience per user
+    const remainingNames = data.filter(item => !storedShown.includes(item.name));
+    
+    // If all names have been shown, reset the "shown" list
+    const activeList = remainingNames.length > 0 ? remainingNames : data;
+    if (remainingNames.length === 0) {
+      localStorage.removeItem('shown_toasts_names');
+    }
+
     let index = 0;
     let showTimeout, nextTimeout;
+
     const startLoop = () => {
-      setCurrent(data[index % data.length]);
+      const user = activeList[index % activeList.length];
+      setCurrent(user);
+
+      // 3. Save the shown name to localStorage so it doesn't appear again after refresh
+      const currentShown = JSON.parse(localStorage.getItem('shown_toasts_names') || '[]');
+      if (!currentShown.includes(user.name)) {
+        currentShown.push(user.name);
+        localStorage.setItem('shown_toasts_names', JSON.stringify(currentShown));
+      }
+
       index++;
+      
+      // Toast stays visible for 4 seconds
       showTimeout = setTimeout(() => setCurrent(null), 4000);
-      nextTimeout = setTimeout(startLoop, 5000 + Math.random() * 4000);
+      
+      // Toast re-appears after a random 20 to 30 seconds (as requested)
+      const randomDelay = 20000 + Math.random() * 10000;
+      nextTimeout = setTimeout(startLoop, randomDelay);
     };
+
+    // Start the loop after a 2-second delay on page load
     const initialTimeout = setTimeout(startLoop, 2000);
+
     return () => {
       clearTimeout(initialTimeout);
       clearTimeout(showTimeout);
@@ -181,6 +216,9 @@ export default function Home() {
             fee: data[`car_${i+1}_fee`] || "$299",
             delivery: data[`car_${i+1}_delivery`] || "7-10 Business Days",
             img: data[`car_${i+1}_img`] || "/images/tesla-model-3.jpg",
+            badge: data[`car_${i+1}_badge`] || "⭐",
+            badgeColor: data[`car_${i+1}_badgeColor`] || "bg-yellow-400 text-yellow-900",
+            color: data[`car_${i+1}_color`] || "from-gray-50 to-gray-100"
           }));
           setSettings({
             branding: {
@@ -207,7 +245,7 @@ export default function Home() {
     return () => clearInterval(interval);
   }, []);
 
-  // Live Feed
+  // Live Feed Generator (Random 0 - 6 seconds, dynamic timestamps)
   useEffect(() => {
     const createTransaction = () => {
       const firstNames = ["James", "Sophie", "Carlos", "Yuki", "Emma", "Lucas", "Fatima", "Pierre", "Amara", "Hans", "Raj", "Maria", "Kevin", "Anna", "David", "Liam", "Jin", "Mei", "Thomas", "Ingrid", "Pablo", "Olga", "Lars", "Sara", "Kwame", "Nadia", "Rafael", "Hana", "Viktor", "Celine"];
@@ -267,7 +305,7 @@ export default function Home() {
       <Navbar branding={settings.branding} />
       <FloatingNotification />
 
-      {/* HERO */}
+      {/* ====== HERO SECTION ====== */}
       <section id="giveaway" className="bg-gradient-to-br from-gray-50 via-white to-gray-100 min-h-screen relative overflow-hidden flex items-center">
         <div className="absolute inset-0 opacity-5">
           <div className="absolute top-0 right-0 w-96 h-96 bg-red-500 rounded-full blur-3xl" />
@@ -306,7 +344,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* INFO - 4 Cars */}
+      {/* ====== AVAILABLE CARS ====== */}
       <section id="info" className="py-20 bg-white">
         <div className="container mx-auto px-6">
           <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-100px" }} transition={{ duration: 0.6 }} className="text-center mb-12">
@@ -315,8 +353,8 @@ export default function Home() {
           </motion.div>
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} transition={{ staggerChildren: 0.15 }} className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {settings.cars.slice(0, 4).map((car, idx) => (
-              <motion.div key={idx} variants={{ hidden: { opacity: 0, y: 40 }, visible: { opacity: 1, y: 0, transition: { duration: 0.6 } } }} className={`bg-gradient-to-br ${getCarColor(idx)} rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-center relative`}>
-                <div className="absolute top-3 right-3"><span className="text-white text-xs font-bold px-2 py-1 rounded-full bg-red-600">{getCarBadge(idx)}</span></div>
+              <motion.div key={idx} variants={{ hidden: { opacity: 0, y: 40 }, visible: { opacity: 1, y: 0, transition: { duration: 0.6 } } }} className={`bg-gradient-to-br ${car.color || 'from-gray-50 to-gray-100'} rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-center relative`}>
+                <div className="absolute top-3 right-3"><span className="bg-red-600 text-white text-xs font-bold px-2 py-1 rounded-full">{car.badge || '⭐'}</span></div>
                 <img src={car.img} alt={car.name} className="w-full h-32 object-contain rounded-xl mb-4" />
                 <h3 className="text-xl font-black text-gray-900">{car.name}</h3>
                 <p className="text-red-600 font-bold text-lg mt-1">{car.tier}</p>
@@ -328,7 +366,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* CEO ANNOUNCEMENTS */}
+      {/* ====== CEO & OFFICIAL ANNOUNCEMENTS ====== */}
       <section className="py-20 bg-white">
         <div className="container mx-auto px-6">
           <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-100px" }} transition={{ duration: 0.6 }} className="text-center mb-12">
@@ -356,7 +394,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* DARK VIDEO (ANNOUNCEMENT) */}
+      {/* ====== DARK VIDEO SECTION (ANNOUNCEMENT) ====== */}
       <section className="py-20 bg-gray-950">
         <div className="container mx-auto px-6">
           <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-100px" }} transition={{ duration: 0.6 }} className="text-center mb-10">
@@ -379,7 +417,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* SECOND VIDEO (MORE PROOF) */}
+      {/* ====== SECOND VIDEO (MORE PROOF) ====== */}
       <section className="py-20 bg-gray-950 border-t border-gray-800">
         <div className="container mx-auto px-6">
           <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-100px" }} transition={{ duration: 0.6 }} className="text-center mb-10">
@@ -401,7 +439,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* TESTIMONIALS */}
+      {/* ====== TESTIMONIALS ====== */}
       <section className="py-20 bg-gray-50">
         <div className="container mx-auto px-6">
           <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-100px" }} transition={{ duration: 0.6 }} className="text-center mb-12">
@@ -424,7 +462,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* FOLLOW SOCIAL */}
+      {/* ====== FOLLOW SOCIAL ====== */}
       <section className="py-20 bg-white">
         <div className="container mx-auto px-6">
           <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-100px" }} transition={{ duration: 0.6 }} className="text-center mb-12">
@@ -456,7 +494,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* INSTRUCTIONS */}
+      {/* ====== INSTRUCTIONS ====== */}
       <section id="instruction" className="py-20 bg-gray-50">
         <div className="container mx-auto px-6">
           <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-100px" }} transition={{ duration: 0.6 }} className="text-center mb-12">
@@ -486,7 +524,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* PARTICIPATE - FULL CAR GRID */}
+      {/* ====== FULL CAR GRID (PARTICIPATE) ====== */}
       <section id="participate" className="py-20 bg-gray-50">
         <div className="container mx-auto px-6">
           <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-100px" }} transition={{ duration: 0.6 }} className="text-center mb-12">
@@ -539,7 +577,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* LIVE TRANSACTIONS */}
+      {/* ====== LIVE TRANSACTIONS ====== */}
       <section id="transactions" className="py-20 bg-white">
         <div className="container mx-auto px-6">
           <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-100px" }} transition={{ duration: 0.6 }} className="text-center mb-12">
@@ -566,7 +604,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* FOOTER */}
+      {/* ====== FOOTER ====== */}
       <footer className="bg-gray-900 py-10">
         <div className="container mx-auto px-6">
           <div className="flex flex-col md:flex-row justify-between items-center gap-6 mb-8">
